@@ -5,46 +5,63 @@ import ddf.minim.signals.*;
 import ddf.minim.spi.*;
 import ddf.minim.ugens.*;
 
-String audioFileName = "Chill 4.mp3";
-//String audioFileName = "chill2.mp3";
-
-
 float fps = 144;
 float delta = 1/fps;
 float smoothingFactor = 0.8;
-
 AudioPlayer track;
 FFT fft;
 Minim minim;
 
-// General
+///////// VISUALIZATION PARAMETERS ////////////
+String audioFileName = "Chill 4.mp3";
+int trackStartTimeMs = 180000;
+//stars
+int movingStars = 400;
+int starTargetPositionRange = 150;
+int staticStars = 400;
+float baseStarSize = 2;
+
+// bars
+boolean drawNorthBars = true;
+boolean drawSouthBars = false;
+boolean drawRoundedBars = true;
+float southRadius = 30;
+float northRadius = 30;
+
+// rgb for these
+float[] backgroundColor = {33, 1, 23};
+float[] barBaseColor = {14, 59, 18};
+float[] circleBaseColor = {14, 59, 18};
+float[] staticStarColor = {255, 255, 255};
+float[] dynamicStarColor = {9, 245, 5};
+
+// draw things or not
+boolean drawBars = true;
+boolean drawCircles = true;
+boolean drawStars = true;
+
+////////// ADVANCED PARAMETERS /////////////
 int bands = 512; // must be multiple of two
 float rectSize = 7.5;
 float spacing = 2;
 
+
+///////// SETUP ////////////////
 float[] spectrum = new float[bands];
 float[] sum = new float[bands];
-
-// Graphics
 float unit;
 int groundLineY;
 PVector center;
 
-int stars = 400;
-int starBuffer = 150;
-float[] sX = new float[stars];
-float[] sY = new float[stars];
-float[] targetXs = new float[stars];
-float[] targetYs = new float[stars];
-
-
-int staticStars = 400;
+float[] sX = new float[movingStars];
+float[] sY = new float[movingStars];
+float[] targetXs = new float[movingStars];
+float[] targetYs = new float[movingStars];
 float[] stX = new float[staticStars];
 float[] stY = new float[staticStars];
 
 void settings() {
   fullScreen();
-  //size(w, h);
   smooth(8);
 }
 
@@ -65,7 +82,7 @@ void setup() {
   fft = new FFT( track.bufferSize(), track.sampleRate() );
   fft.logAverages(22, 3);
 
-  for (int i = 0; i < stars; i++) {
+  for (int i = 0; i < movingStars; i++) {
     sX[i] = random(0, width);
     sY[i] = random(0, height);
     stX[i] = random(0, width);
@@ -74,7 +91,7 @@ void setup() {
     targetYs[i] = random(0, height);
   }
 
-  track.cue(180000); // Cue in milliseconds
+  track.cue(trackStartTimeMs); // Cue in milliseconds
 }
 
 void draw() {
@@ -84,28 +101,44 @@ void draw() {
   for (int i = 0; i < fftSize; i++)
   {
     spectrum[i] = fft.getAvg(i) / 2;
-
     // Smooth the FFT spectrum data by smoothing factor
     sum[i] += (abs(spectrum[i]) - sum[i]) * smoothingFactor;
   }
   // Reset canvas
-  fill(0);
+  fill(backgroundColor[0], backgroundColor[1], backgroundColor[2]);
   noStroke();
   rect(0, 0, width, height);
   noFill();
-  drawStars(sum[0] > 10, sum[0]);
-  drawCircles(sum, width/2, height/2);
-  noStroke();
-  drawWaveform(sum, width/2 - ((fftSize * rectSize)/2) - (spacing*fftSize), height/2);
+  if (drawStars) {
+    drawStars(sum[0] > 10, sum[0]);
+  }
+  if (drawCircles) {
+    drawCircles(sum, width/2, height/2);
+  }
+  if (drawBars) {
+    noStroke();
+    drawWaveform(sum, width/2 - ((fftSize * rectSize)/2) - (spacing*fftSize), height/2);
+  }
 }
 
 void drawWaveform(float[] sum, float x, float y) {
   for (int i = 0; i < 24; i++) {
     float h =  map(sum[i] * 4, 0, 1000, 0, 300);
-    //fill(random(0,255),random(0,255),random(0,255));
-    fill(168+(i*10), 0+(i*10), 0+(i*4));
-    rect((i*rectSize*2)+(i+2) + x, y-h, rectSize*2, h);
-    rect((i*rectSize*2)+(i+2) + x, y, rectSize*2, h);
+    fill(barBaseColor[0]+(i*10), barBaseColor[1]+(i*10), barBaseColor[2]+(i*4));
+    if (drawNorthBars) {
+      if (drawRoundedBars) {
+        rect((i*rectSize*2)+(i+2) + x, y-h, rectSize*2, h, northRadius, northRadius, drawSouthBars ? 0: southRadius, drawSouthBars ? 0: southRadius);
+      } else {
+        rect((i*rectSize*2)+(i+2) + x, y-h, rectSize*2, h);
+      }
+    }
+    if (drawSouthBars) {
+      if (drawRoundedBars) {
+        rect((i*rectSize*2)+(i+2) + x, y, rectSize*2, h, drawNorthBars ? 0 : northRadius,  drawNorthBars ? 0 : northRadius, southRadius, southRadius);
+      } else {
+        rect((i*rectSize*2)+(i+2) + x, y, rectSize*2, h);
+      }
+    }
   }
 }
 
@@ -114,7 +147,7 @@ void drawCircles(float[] sum, float x, float y) {
     float r = map(sum[i] * 10, 0, 400, 400, 500);
     noFill();
     strokeWeight(i);
-    stroke(150+(i*10), 0+(i*10), 0+(i*4));
+    stroke(circleBaseColor[0]+(i*10), circleBaseColor[1]+(i*10), circleBaseColor[2]+(i*4));
     circle(x, y, r);
   }
 }
@@ -122,31 +155,30 @@ void drawCircles(float[] sum, float x, float y) {
 void drawStars(boolean trigger, float increase) {
   //static
   for (int i = 0; i < staticStars; i++) {
-    fill(255);
-    float size =  1.5 + map(increase, 0, 100, 0, 3);
+    fill(staticStarColor[0], staticStarColor[1], staticStarColor[2]);
+    float size = baseStarSize + map(increase, 0, 100, 0, 3);
     rect(stX[i], stY[i], size, size);
   }
   //dynamic
-  for (int i = 0; i < stars; i++) {
+  for (int i = 0; i < movingStars; i++) {
     float speed = random(1, 10) * delta;
-    fill(255);
+    fill(dynamicStarColor[0], dynamicStarColor[1], dynamicStarColor[2]);
     sX[i] = stepTowards(sX[i], targetXs[i], speed);
     sY[i] = stepTowards(sY[i], targetYs[i], speed);
     float size =  2.5-speed + map(increase, 0, 100, 0, 3);
     rect(sX[i], sY[i], size, size);
   }
   if (trigger) {
-    for (int i = 0; i < stars; i++) {
+    for (int i = 0; i < movingStars; i++) {
       float xMod = targetXs[i] + random(-50, 50);
       float yMod = targetYs[i] + random(-50, 50);
-      while (xMod < -starBuffer || xMod > width+starBuffer) {
+      while (xMod < -starTargetPositionRange || xMod > width+starTargetPositionRange) {
         xMod = targetXs[i]  + random(-50, 50);
       }
-      while (yMod < -starBuffer || yMod > height+starBuffer) {
+      while (yMod < -starTargetPositionRange || yMod > height+starTargetPositionRange) {
         yMod = targetYs[i]  + random(-50, 50);
       }
     }
-  
   }
 }
 
