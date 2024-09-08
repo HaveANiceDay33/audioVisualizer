@@ -14,6 +14,7 @@ FFT fft;
 Minim minim;
 
 ///////// VISUALIZATION PARAMETERS ////////////
+// make a "data" folder next to this code file and add tracks to that
 String audioFileName = "Chill5mp3.mp3";
 int trackStartTimeMs = 120000;
 
