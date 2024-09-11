@@ -5,7 +5,7 @@ import ddf.minim.signals.*;
 import ddf.minim.spi.*;
 import ddf.minim.ugens.*;
 
-float fps = 144;
+float fps = 60;
 float delta = 1/fps;
 float smoothingFactor = 0.8;
 
@@ -15,15 +15,15 @@ Minim minim;
 
 ///////// VISUALIZATION PARAMETERS ////////////
 // make a "data" folder next to this code file and add tracks to that
-String audioFileName = "Chill5mp3.mp3";
-int trackStartTimeMs = 120000;
+String audioFileName = "Chill3.mp3";
+int trackStartTimeMs = 318000;
 
 //stars
 int movingStars = 400;
 int starTargetPositionRange = 150;
 int staticStars = 400;
 float baseStarSize = 2;
-float starSensitivity = 4;
+float starSensitivity = 3;
 
 // circles
 float circleSensitivity = 40;
@@ -32,18 +32,18 @@ int numCircles = 4;
 
 // bars
 boolean drawNorthBars = true;
-boolean drawSouthBars = false;
+boolean drawSouthBars = true;
 boolean drawRoundedBars = true;
-float southRadius = 30;
-float northRadius = 30;
-float barSensitivity = 10;
+float southRadius = 10;
+float northRadius = 10;
+float barSensitivity = 8;
 
 // rgb for these
-float[] backgroundColor = {19, 2, 41};
-float[] barBaseColor = {19, 235, 22};
-float[] circleBaseColor = {16, 232, 171};
-float[] staticStarColor = {255, 255, 255};
-float[] movingStarColor = {9, 245, 5};
+float[] backgroundColor = {1, 33, 43};
+float[] barBaseColor = {72, 242, 5};
+float[] circleBaseColor = {21, 183, 232};
+float[] staticStarColor = {250, 250, 250};
+float[] movingStarColor = {12, 237, 132};
 
 // draw things or not
 boolean drawBars = true;
@@ -87,7 +87,7 @@ void setup() {
 
   minim = new Minim(this);
   track = minim.loadFile(audioFileName, 2048);
-
+ 
   track.loop();
 
   fft = new FFT( track.bufferSize(), track.sampleRate() );
@@ -112,7 +112,6 @@ void draw() {
   for (int i = 0; i < fftSize; i++)
   {
     spectrum[i] = fft.getAvg(i) / 2;
-
     // Smooth the FFT spectrum data by smoothing factor
     sum[i] += (abs(spectrum[i]) - sum[i]) * smoothingFactor;
   }
@@ -131,7 +130,7 @@ void draw() {
   if (drawBars) {
     noStroke();
     drawWaveform(sum, width/2 - ((fftSize * rectSize)/2) - (spacing*fftSize), height/2);
-  }
+  }  
 }
 
 void drawWaveform(float[] sum, float x, float y) {
